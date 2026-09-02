@@ -1,0 +1,30 @@
+{
+  "quick_login_enabled": false,
+  "users": [
+    {
+      "id": "1ad7bc0f-7d34-474e-a226-2ca8637c069a",
+      "name": "Admin User",
+      "email": "cbogineni@zetaglobal.com",
+      "role": "admin",
+      "team": "HP-APJ",
+      "status": "active",
+      "last_login": "2026-08-31T10:48:17.314Z",
+      "created_at": "2026-07-23T05:59:56.585142+00:00"
+    },
+    {
+      "id": "9535db07-8d88-4e17-8f21-bb788b86d8ab",
+      "name": "QA User ",
+      "email": "hpapjteam@gmail.com",
+      "role": "user",
+      "team": "HP-APJ",
+      "status": "active",
+      "last_login": "2026-08-31T10:45:03.133Z",
+      "created_at": "2026-07-23T06:21:35.801478+00:00"
+    }
+  ],
+  "supabase": {
+    "url": "https://ogklfczlceubykreddib.supabase.co",
+    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9na2xmY3psY2V1YnlrcmVkZGliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MTkyMjgsImV4cCI6MjEwMDI5NTIyOH0.QsgQWfCRQZQiLUBbz84zpXrIsxEFDXXLRgj44-HO12E",
+    "serviceRoleKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9na2xmY3psY2V1YnlrcmVkZGliIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDcxOTIyOCwiZXhwIjoyMTAwMjk1MjI4fQ.hZbtmPG_B8AfIeDDNb0dTdWogP5Du6yp7CbcC1pUJmM"
+  }
+}
