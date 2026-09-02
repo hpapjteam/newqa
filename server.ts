@@ -2,13 +2,13 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import session from "express-session";
 
-import { router as campaignsRouter } from "./api/routes/campaigns";
-import { router as foldersRouter } from "./api/routes/folders";
-import { router as miscRouter } from "./api/routes/misc";
-import { router as usersRouter } from "./api/routes/users";
-import { router as emailsRouter } from "./api/routes/emails";
-import { router as settingsRouter } from "./api/routes/settings";
-import { router as aiRouter } from "./api/routes/ai";
+import { router as campaignsRouter } from "./server/routes/campaigns";
+import { router as foldersRouter } from "./server/routes/folders";
+import { router as miscRouter } from "./server/routes/misc";
+import { router as usersRouter } from "./server/routes/users";
+import { router as emailsRouter } from "./server/routes/emails";
+import { router as settingsRouter } from "./server/routes/settings";
+import { router as aiRouter } from "./server/routes/ai";
 
 import path from "path";
 import fs from "fs";
