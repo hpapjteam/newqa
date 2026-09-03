@@ -1,5 +1,11 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "app_state.json",
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/api",
