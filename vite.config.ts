@@ -21,7 +21,12 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        '@server': path.resolve(__dirname, './server'),
+        '@routes': path.resolve(__dirname, './server/routes'),
+        'server/routes': path.resolve(__dirname, './server/routes'),
+        './server/routes': path.resolve(__dirname, './server/routes'),
       },
+      extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',

@@ -2,6 +2,24 @@ import fs from "fs";
 import path from "path";
 
 const APP_STATE_FILE = path.join(process.cwd(), "app_state.json");
+const TMP_STATE_FILE = path.join("/tmp", "app_state.json");
+
+let appStateFallback: any = null;
+try {
+  const possiblePaths = [
+    APP_STATE_FILE,
+    TMP_STATE_FILE,
+    path.resolve(process.cwd(), "app_state.json")
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      appStateFallback = JSON.parse(fs.readFileSync(p, "utf-8"));
+      break;
+    }
+  }
+} catch {
+  appStateFallback = null;
+}
 
 export interface ServerAppState {
   quick_login_enabled: boolean;
@@ -56,8 +74,15 @@ export const defaultAppState: ServerAppState = {
 
 export function loadAppState(): ServerAppState {
   try {
+    let targetFile = "";
     if (fs.existsSync(APP_STATE_FILE)) {
-      const data = fs.readFileSync(APP_STATE_FILE, "utf-8");
+      targetFile = APP_STATE_FILE;
+    } else if (fs.existsSync(TMP_STATE_FILE)) {
+      targetFile = TMP_STATE_FILE;
+    }
+
+    if (targetFile) {
+      const data = fs.readFileSync(targetFile, "utf-8");
       const parsed = JSON.parse(data);
       
       const quick_login_enabled = parsed.quick_login_enabled !== undefined ? Boolean(parsed.quick_login_enabled) : true;
@@ -72,8 +97,20 @@ export function loadAppState(): ServerAppState {
       };
     }
   } catch (err) {
-    console.warn("[Server] Error reading app_state.json:", err);
+    console.warn("[Server] Error reading app_state.json from disk, falling back to static copy:", err);
   }
+
+  // Resilient fallback for serverless environments
+  if (appStateFallback) {
+    const parsed = appStateFallback as any;
+    return {
+      quick_login_enabled: parsed.quick_login_enabled !== undefined ? Boolean(parsed.quick_login_enabled) : true,
+      users: Array.isArray(parsed.users) ? parsed.users : defaultAppState.users,
+      ai_agents: Array.isArray(parsed.ai_agents) ? parsed.ai_agents : undefined,
+      supabase: parsed.supabase || defaultAppState.supabase
+    };
+  }
+
   return { ...defaultAppState };
 }
 
@@ -81,7 +118,12 @@ export function saveAppState(state: ServerAppState) {
   try {
     fs.writeFileSync(APP_STATE_FILE, JSON.stringify(state, null, 2), "utf-8");
   } catch (err) {
-    console.warn("[Server] Error writing app_state.json:", err);
+    // If the root filesystem is read-only (e.g. AWS Lambda / Vercel Serverless Function), persist to /tmp
+    try {
+      fs.writeFileSync(TMP_STATE_FILE, JSON.stringify(state, null, 2), "utf-8");
+    } catch {
+      // In-memory state remains intact
+    }
   }
 }
 

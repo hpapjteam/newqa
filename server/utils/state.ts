@@ -1,9 +1,25 @@
 import fs from "fs";
 import path from "path";
-import appStateFallback from "../../app_state.json";
 
 const APP_STATE_FILE = path.join(process.cwd(), "app_state.json");
 const TMP_STATE_FILE = path.join("/tmp", "app_state.json");
+
+let appStateFallback: any = null;
+try {
+  const possiblePaths = [
+    APP_STATE_FILE,
+    TMP_STATE_FILE,
+    path.resolve(process.cwd(), "app_state.json")
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      appStateFallback = JSON.parse(fs.readFileSync(p, "utf-8"));
+      break;
+    }
+  }
+} catch {
+  appStateFallback = null;
+}
 
 export interface ServerAppState {
   quick_login_enabled: boolean;

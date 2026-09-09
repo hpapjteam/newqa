@@ -2,13 +2,13 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import session from "express-session";
 
-import { router as campaignsRouter } from "./server/routes/campaigns";
-import { router as foldersRouter } from "./server/routes/folders";
-import { router as miscRouter } from "./server/routes/misc";
-import { router as usersRouter } from "./server/routes/users";
-import { router as emailsRouter } from "./server/routes/emails";
-import { router as settingsRouter } from "./server/routes/settings";
-import { router as aiRouter } from "./server/routes/ai";
+import { router as campaignsRouter } from "./server/routes/campaigns.ts";
+import { router as foldersRouter } from "./server/routes/folders.ts";
+import { router as miscRouter } from "./server/routes/misc.ts";
+import { router as usersRouter } from "./server/routes/users.ts";
+import { router as emailsRouter } from "./server/routes/emails.ts";
+import { router as settingsRouter } from "./server/routes/settings.ts";
+import { router as aiRouter } from "./server/routes/ai.ts";
 
 import path from "path";
 import fs from "fs";
@@ -138,16 +138,20 @@ app.use("/api", apiLimiter);
 
 // Enable Safe CORS
 app.use((req, res, next) => {
-  const origin = req.headers.origin || "";
+  const origin = (req.headers.origin as string) || "";
   const allowedOrigins = [process.env.FRONTEND_URL || "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"];
   
-  if (allowedOrigins.includes(origin) || origin.startsWith("http://localhost:")) {
-    res.header("Access-Control-Allow-Origin", origin);
+  const isVercelDomain = origin.endsWith(".vercel.app") || (process.env.VERCEL_URL && origin.includes(process.env.VERCEL_URL));
+  const isLocalhost = origin.startsWith("http://localhost:") || origin.startsWith("https://localhost:") || origin.startsWith("http://127.0.0.1:");
+
+  if (!origin || allowedOrigins.includes(origin) || isLocalhost || isVercelDomain) {
+    res.header("Access-Control-Allow-Origin", origin || "*");
   } else {
-    res.header("Access-Control-Allow-Origin", allowedOrigins[0]);
+    res.header("Access-Control-Allow-Origin", origin);
   }
   
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);

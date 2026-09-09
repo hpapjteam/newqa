@@ -19,6 +19,18 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@server/*": [
+        "./server/*"
+      ],
+      "@routes/*": [
+        "./server/routes/*"
+      ],
+      "server/routes": [
+        "./server/routes/index.ts"
+      ],
+      "server/routes/*": [
+        "./server/routes/*"
       ]
     },
     "allowImportingTsExtensions": true,
