@@ -302,20 +302,67 @@ router.post("/api/check-url", async (req, res) => {
   }
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
     const start = Date.now();
-    const response = await fetch(url, { method: "HEAD", redirect: "follow", signal: controller.signal });
+    let response: any;
+    try {
+      response = await fetch(url, {
+        method: "HEAD",
+        redirect: "follow",
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        }
+      });
+      // If server rejects HEAD with 405 Method Not Allowed or 403 Forbidden, retry with GET
+      if (response.status === 405 || response.status === 403) {
+        response = await fetch(url, {
+          method: "GET",
+          redirect: "follow",
+          signal: controller.signal,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+          }
+        });
+      }
+    } catch {
+      response = await fetch(url, {
+        method: "GET",
+        redirect: "follow",
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        }
+      });
+    }
     clearTimeout(timeout);
 
     const end = Date.now();
+    const finalUrl = response.url || url;
+    
+    // Parse query params from finalUrl
+    const urlObj = new URL(finalUrl);
+    const utmParams: Record<string, string> = {};
+    urlObj.searchParams.forEach((val, key) => {
+      if (key.toLowerCase().startsWith("utm_") || key.toLowerCase() === "jumpid" || key.toLowerCase().startsWith("et_")) {
+        utmParams[key] = val;
+      }
+    });
+
     res.json({
       status: response.status,
-      finalUrl: response.url,
+      finalUrl: finalUrl,
       responseTime: end - start,
+      utmParams
     });
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || "Failed to fetch URL" });
+    res.status(200).json({ 
+      status: 0, 
+      finalUrl: "", 
+      responseTime: 0, 
+      error: error?.message || "Failed to reach target URL" 
+    });
   }
 });
 

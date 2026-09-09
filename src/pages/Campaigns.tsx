@@ -906,7 +906,7 @@ export function Campaigns({ userEmail = "admin@example.com", userRole = "admin" 
                       New Folder
                     </button>
                     <Link
-                      to="/campaigns/new"
+                      to={selectedFolderId ? `/campaigns/new?folder_id=${selectedFolderId}` : `/campaigns/new?folder_id=2026`}
                       className="text-left px-3 py-2 text-[10px] font-bold text-slate-700 hover:bg-blue-50 hover:text-[#2b61d6] flex items-center gap-2 transition-colors cursor-pointer"
                     >
                       <PlusCircle className="h-3 w-3" />

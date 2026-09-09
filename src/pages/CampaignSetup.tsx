@@ -10,6 +10,7 @@ import { EnglishTextAnalysis } from "@/src/components/QAWorkspace/EnglishTextAna
 import { CampaignSetupSkeleton } from "@/src/components/QAWorkspace/Skeletons";
 import { exportQAVerificationReceiptPDF } from "@/lib/export-qa-pdf";
 import { exportQAChecklistToExcel } from "@/lib/export-qa-excel";
+import { CampaignProgressIndicator } from "@/src/components/CampaignProgressIndicator";
 import MsgReader from "@kenjiuno/msgreader";
 import React, { useState, useEffect, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
@@ -22,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { validateCampaignHTML } from "@/lib/qa-validator";
 import { fetchAndValidateCountryUrls, fetchAllowedUrlPattern } from "@/lib/url-validator";
-import { isCampaignNameUnique, saveCampaignRecord, getCampaignById, getFolders, FolderItem, CampaignRecord } from "@/lib/campaign-storage";
+import { isCampaignNameUnique, saveCampaignRecord, getCampaignById, getFolders, fetchFolders, FolderItem, CampaignRecord } from "@/lib/campaign-storage";
 import { fetchPlatformChecklists } from "@/lib/checklist-storage";
 import { parseMsgArrayBuffer } from "@/lib/msg-parser";
 import { logAction, getCampaignLogs } from "@/lib/logger";
@@ -212,7 +213,9 @@ export function CampaignSetup({ userEmail = "admin@example.com", userRole = "use
 
   const saveCurrentCampaignState = async (overrides: Partial<CampaignRecord> = {}) => {
     const data = watch();
-    if (!data.name || data.name.trim().length < 2) return null;
+    const effectiveName = (data.name && data.name.trim().length >= 2)
+      ? data.name.trim()
+      : (campaignIdRef.current ? "Draft Campaign" : `Draft Campaign ${new Date().toLocaleDateString('en-GB')}`);
 
     try {
       setSyncStatus("syncing");
@@ -221,7 +224,7 @@ export function CampaignSetup({ userEmail = "admin@example.com", userRole = "use
 
       const record = await saveCampaignRecord({
         id: currentIdToUse,
-        name: data.name,
+        name: effectiveName,
         team: data.team || "HP-APJ",
         country: data.country || "",
         versionName: data.versionName || "",
@@ -271,6 +274,25 @@ export function CampaignSetup({ userEmail = "admin@example.com", userRole = "use
       setSyncStatus("offline");
       return null;
     }
+  };
+
+  const handleChecklistAnswersChange = (newAnswers: Record<string, any>) => {
+    setChecklistAnswers(newAnswers);
+    checklistAnswersRef.current = newAnswers;
+
+    const restoredCheckpoints: Record<string, boolean> = {};
+    Object.keys(newAnswers).forEach((key) => {
+      const val = newAnswers[key];
+      if (typeof val === 'boolean') {
+        restoredCheckpoints[key] = val;
+      } else if (val && typeof val === 'object') {
+        restoredCheckpoints[key] = val.status === 'Checked' || val.status === 'N/A';
+      }
+    });
+    setCheckedCheckpoints(restoredCheckpoints);
+
+    // Save state immediately on checkpoint change
+    saveCurrentCampaignState({ checklistAnswers: newAnswers });
   };
 
   const [teamChecklists, setTeamChecklists] = useState<any[]>([]);
@@ -329,7 +351,21 @@ export function CampaignSetup({ userEmail = "admin@example.com", userRole = "use
     }
   });
 
-  const availableFolders = getFolders();
+  const [availableFolders, setAvailableFolders] = useState<FolderItem[]>(() => {
+    const cached = getFolders();
+    return cached.length > 0 ? cached : [
+      { id: "2026", name: "2026 Campaigns", parentId: null, year: "2026", created_at: new Date().toISOString() },
+      { id: "2025", name: "2025 Campaigns", parentId: null, year: "2025", created_at: new Date().toISOString() }
+    ];
+  });
+
+  useEffect(() => {
+    fetchFolders().then((list) => {
+      if (list && list.length > 0) {
+        setAvailableFolders(list);
+      }
+    });
+  }, []);
   const values = watch();
   const [campaignChecklists, setCampaignChecklists] = useState<any[]>([]);
   const [selectedChecklistId, setSelectedChecklistId] = useState<string>("");
@@ -1565,6 +1601,18 @@ export function CampaignSetup({ userEmail = "admin@example.com", userRole = "use
         </div>
       )}
 
+      {/* Global Campaign Flow Progress Indicator (Setup -> Validation -> Checklist) */}
+      <CampaignProgressIndicator
+        currentStep={currentStep}
+        totalSteps={totalSteps}
+        steps={STEPS}
+        checklists={checklists}
+        checklistAnswers={checklistAnswers}
+        onStepClick={handleStepClick}
+        campaignStatus={campaignStatus}
+        isApprovedLocked={isApprovedLocked}
+      />
+
       {isPageLoading ? (
         <CampaignSetupSkeleton />
       ) : (
@@ -1576,6 +1624,7 @@ export function CampaignSetup({ userEmail = "admin@example.com", userRole = "use
           onNext={nextStep}
           onPrev={prevStep}
           onStepClick={handleStepClick}
+          hideStepper={true}
           onCancel={async () => {
             await saveCurrentCampaignState();
             navigate("/campaigns");
@@ -1591,7 +1640,7 @@ export function CampaignSetup({ userEmail = "admin@example.com", userRole = "use
                     currentStep={currentStep} 
                     checklists={checklists} 
                     answers={checklistAnswers} 
-                    setAnswers={setChecklistAnswers} 
+                    setAnswers={handleChecklistAnswersChange} 
                     showError={showChecklistError}
                     disabled={isApprovedLocked}
                     campaignMeta={{
@@ -1609,8 +1658,14 @@ export function CampaignSetup({ userEmail = "admin@example.com", userRole = "use
                 <Card className="shadow-xs border-slate-200 flex flex-col">
                 <CardHeader className="border-b border-slate-100 bg-white rounded-t-xl shrink-0 flex flex-row items-center justify-between py-4">
                   <div>
-                    <CardTitle className="text-slate-900 text-base">Campaign Details & Source</CardTitle>
-                    <CardDescription className="text-slate-500 text-xs">Specify mandatory unique campaign name, target region, and design reference.</CardDescription>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-slate-900 text-base">Campaign Details & Source</CardTitle>
+                      <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                        <Folder className="w-3 h-3 text-[#2b61d6]" />
+                        {availableFolders.find(f => f.id === (values.folder_id || targetFolderParam || "2026"))?.name || "2026 Campaigns"}
+                      </span>
+                    </div>
+                    <CardDescription className="text-slate-500 text-xs mt-0.5">Specify mandatory unique campaign name, target region, and design reference.</CardDescription>
                   </div>
                   <Button
                     type="button"

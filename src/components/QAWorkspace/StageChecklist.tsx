@@ -4,6 +4,7 @@ import { CheckCircle2, AlertCircle, Type } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getNormalizedStage } from "@/lib/checklist-storage";
 
 interface StageChecklistProps {
   currentStep: number;
@@ -30,7 +31,7 @@ export function StageChecklist({
   showError, 
   disabled
 }: StageChecklistProps) {
-  const currentItems = checklists.filter(c => c.stage === currentStep || c.stage === 0);
+  const currentItems = checklists.filter(c => getNormalizedStage(c) === currentStep);
   
   if (currentItems.length === 0) return null;
 
@@ -65,6 +66,10 @@ export function StageChecklist({
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Auto-saved
+            </span>
             <Button
               type="button"
               variant="outline"
